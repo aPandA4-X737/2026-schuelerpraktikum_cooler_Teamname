@@ -1,44 +1,49 @@
 import "./stylesheet.css";
-import { useEffect, useState } from "react";
 
 function SensorTable() {
-    const [data, setData] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const response = await fetch("http://127.0.0.1:8000/data/");
-      const json = await response.json();
-      console.log(JSON.stringify(json))
-      setData(json);
-    };
-    fetchData();
-  }, []);
-
+    const sensors = [
+    {
+      "name": "thruster_3.b", 
+      "type": "thruster", 
+      "pressure": 8.531939707650038, 
+      "temperature": 413.2229067496139
+    },
+    {
+      "name": "thruster_3.c",
+      "type": "thruster",
+      "pressure": 1.939630382365832,
+      "temperature": 491.66510784087706
+    }
+  ];
 
     return (
-        <table>
+        <table class="table">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Pressure</th>
-                    <th>Temperature</th>
+                    <th class="border" >Name</th>
+                    <th class="border" >Type</th>
+                    <th class="border" >Pressure</th>
+                    <th class="border" >Temperature</th>
                 </tr>
             </thead>
         <tbody>
 
             {
-                data && data.map(sensor => (
+                sensors.map(sensor => (
 
-                    
                     <tr>
-                        <td>{sensor.name}</td>
-                        <td>{sensor.pressure}</td>
-                        <td>{sensor.temperature}</td>
+                        <td class="border">{sensor.name}</td>
+                        <td class="border">{sensor.type}</td>
+                        <td class="border">{sensor.pressure}</td>
+                        <td class="border">{sensor.temperature}</td>
                     </tr>
+
                 ))
             }
 
         </tbody>
+
         </table>
     );
 }

@@ -5,8 +5,7 @@ import "./stylesheet.css";
 function App() {
   return (
     <div>
-      <h1>Satelliten Daten</h1>
-      <h2 className="text_left" >Thruster</h2>
+      <h1>Sateliten Daten</h1>
       <SensorTable />
       <Suche />
     </div>

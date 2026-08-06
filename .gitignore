@@ -1,5 +1,5 @@
 /.idea
 /venv
 *.iml
-data/*.json
+*.json
 /__pycache__
