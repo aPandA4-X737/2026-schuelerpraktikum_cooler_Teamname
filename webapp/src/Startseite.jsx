@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import AlteTable from "./AlteTable";
 import "./stylesheet.css";
 
 /** Respektiert die Systemeinstellung "Bewegung reduzieren". */
@@ -121,19 +122,9 @@ export default function Startseite({ onSuchen, anzahl, status }) {
           </p>
         </div>
 
-        {/*
-          Reservierter Bereich für die Tabelle, die später hier eingebaut wird.
-          Zum Einsetzen einfach den Inhalt dieses <section> ersetzen –
-          die Breite entspricht schon der Tabelle in der Datenansicht.
-        */}
+        {/* Übersicht der aktuellen Messwerte – Breite passt zur Datenansicht */}
         <section className="start-tabellenplatz">
-          <svg className="platzhalter-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="16" rx="2" />
-            <line x1="3" y1="9.5" x2="21" y2="9.5" />
-            <line x1="9" y1="9.5" x2="9" y2="20" />
-          </svg>
-          <p className="platzhalter-titel">Platz für die Datentabelle</p>
-          <p className="platzhalter-text">Wird hier später eingefügt.</p>
+          <AlteTable />
         </section>
       </div>
     </div>

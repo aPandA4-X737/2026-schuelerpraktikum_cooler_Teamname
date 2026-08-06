@@ -138,6 +138,19 @@ function SensorSection({ title, sensors, onSelectSensor }) {
     );
 }
 
+/* /data/current liefert die Daten verschachtelt nach Typ und Name:
+   { "thruster": { "thruster_1.a": { time, pressure, temperature } }, ... }
+   Die Tabelle arbeitet mit einer flachen Liste, also bauen wir sie um. */
+function flattenCurrent(json) {
+    return Object.entries(json ?? {}).flatMap(([type, sensors]) =>
+        Object.entries(sensors ?? {}).map(([name, measurement]) => ({
+            type,
+            name,
+            ...measurement,
+        }))
+    );
+}
+
 function SensorTable() {
     const [allData, setAllData] = useState([]);
     const [selectedSensor, setSelectedSensor] = useState(null);
@@ -148,13 +161,14 @@ function SensorTable() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const response = await fetch("http://127.0.0.1:8000/data/");
+            const response = await fetch("http://127.0.0.1:8000/data/current");
             const json = await response.json();
+            const sensors = flattenCurrent(json);
 
-            setAllData(json);
-            setThrusterData(sortByName(json.filter((item) => item.type === "thruster")));
-            setOxygenTankData(sortByName(json.filter((item) => item.type === "gas_valve" && item.name.startsWith("o"))));
-            setHydrogenTankData(sortByName(json.filter((item) => item.type === "gas_valve" && item.name.startsWith("h"))));
+            setAllData(sensors);
+            setThrusterData(sortByName(sensors.filter((item) => item.type === "thruster")));
+            setOxygenTankData(sortByName(sensors.filter((item) => item.type === "gas_valve" && item.name.startsWith("o"))));
+            setHydrogenTankData(sortByName(sensors.filter((item) => item.type === "gas_valve" && item.name.startsWith("h"))));
         };
         fetchData();
     }, []);
