@@ -98,9 +98,6 @@ function App() {
           </button>
 
           <div className="kopfzeile-aktionen">
-            <span className={`status-punkt status-punkt--${status}`}>
-              {status === "ok" ? "Verbunden" : status === "laedt" ? "Lädt" : "Offline"}
-            </span>
             <LetzteAktualisierung zeitstempel={letzteAktualisierung} />
             <button
               type="button"

@@ -11,6 +11,14 @@ from models import DataModel, GroupedDataModel, MeasurementModel
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 MONGODB_URL = os.getenv(
     "MONGODB_URL",
     "mongodb://root:password@localhost:27017/"

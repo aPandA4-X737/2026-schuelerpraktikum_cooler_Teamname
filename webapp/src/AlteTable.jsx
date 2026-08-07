@@ -1,6 +1,9 @@
 import "./stylesheet.css";
 import { useEffect, useState } from "react";
 
+const API_URL = "http://127.0.0.1:8000";
+const POLL_INTERVALL = 10000; // alle 10s neu laden, da laufend Daten reinkommen
+
 function formatNumber(value) {
     if (value === null || value === undefined) return "–";
     return Number(value).toFixed(2);
@@ -46,7 +49,19 @@ function sortByTime(sensors) {
     });
 }
 
-function SensorDetail({ sensorName, readings, onClose }) {
+/* /data_wsi/{name} liefert die Historie ebenfalls nach Typ und Name verschachtelt:
+   { "thruster": { "thruster_1.a": [ { time, pressure, temperature }, ... ] } }
+   Fuer das Fenster brauchen wir nur die Messwerte des gesuchten Sensors. */
+function flattenHistory(json, sensorName) {
+    return Object.values(json ?? {}).flatMap(
+        (sensors) => sensors?.[sensorName] ?? []
+    );
+}
+
+function SensorDetail({ sensorName, onClose }) {
+    const [readings, setReadings] = useState([]);
+    const [status, setStatus] = useState("loading");
+
     // Fenster laesst sich auch mit der Escape-Taste schliessen
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -55,6 +70,37 @@ function SensorDetail({ sensorName, readings, onClose }) {
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [onClose]);
+
+    useEffect(() => {
+        // Wird waehrend des Ladens ein anderer Sensor geklickt, brechen wir die
+        // alte Anfrage ab, damit sie das neue Ergebnis nicht ueberschreibt.
+        const controller = new AbortController();
+
+        const fetchHistory = async () => {
+            setStatus("loading");
+            try {
+                const response = await fetch(
+                    `${API_URL}/data_wsi/${encodeURIComponent(sensorName)}`,
+                    { signal: controller.signal }
+                );
+
+                if (!response.ok) {
+                    setReadings([]);
+                    setStatus(response.status === 404 ? "empty" : "error");
+                    return;
+                }
+
+                const json = await response.json();
+                setReadings(flattenHistory(json, sensorName));
+                setStatus("ready");
+            } catch (error) {
+                if (error.name !== "AbortError") setStatus("error");
+            }
+        };
+
+        fetchHistory();
+        return () => controller.abort();
+    }, [sensorName]);
 
     const sortedReadings = sortByTime(readings);
 
@@ -66,7 +112,9 @@ function SensorDetail({ sensorName, readings, onClose }) {
                     <div>
                         <h2>{sensorName}</h2>
                         <p className="modal-subtitle">
-                            {sortedReadings.length} Messungen
+                            {status === "loading"
+                                ? "Lade Messungen …"
+                                : `${sortedReadings.length} Messungen`}
                         </p>
                     </div>
                     <button className="modal-close" onClick={onClose}>✕</button>
@@ -82,6 +130,22 @@ function SensorDetail({ sensorName, readings, onClose }) {
                             </tr>
                         </thead>
                         <tbody>
+                            {status !== "ready" && (
+                                <tr>
+                                    <td className="empty" colSpan={3}>
+                                        {status === "loading" && "Lade Daten …"}
+                                        {status === "empty" && "Keine Daten vorhanden"}
+                                        {status === "error" && "Daten konnten nicht geladen werden"}
+                                    </td>
+                                </tr>
+                            )}
+
+                            {status === "ready" && sortedReadings.length === 0 && (
+                                <tr>
+                                    <td className="empty" colSpan={3}>Keine Daten vorhanden</td>
+                                </tr>
+                            )}
+
                             {sortedReadings.map((reading, index) => (
                                 <tr key={reading._id ?? index}>
                                     <td>{formatTime(reading.time)}</td>
@@ -138,8 +202,20 @@ function SensorSection({ title, sensors, onSelectSensor }) {
     );
 }
 
+/* /data/current liefert die Daten verschachtelt nach Typ und Name:
+   { "thruster": { "thruster_1.a": { time, pressure, temperature } }, ... }
+   Die Tabelle arbeitet mit einer flachen Liste, also bauen wir sie um. */
+function flattenCurrent(json) {
+    return Object.entries(json ?? {}).flatMap(([type, sensors]) =>
+        Object.entries(sensors ?? {}).map(([name, measurement]) => ({
+            type,
+            name,
+            ...measurement,
+        }))
+    );
+}
+
 function SensorTable() {
-    const [allData, setAllData] = useState([]);
     const [selectedSensor, setSelectedSensor] = useState(null);
 
     const [thrusterData, setThrusterData] = useState([]);
@@ -147,16 +223,46 @@ function SensorTable() {
     const [hydrogenTankData, setHydrogenTankData] = useState([]);
 
     useEffect(() => {
-        const fetchData = async () => {
-            const response = await fetch("http://127.0.0.1:8000/data/");
-            const json = await response.json();
+        const controller = new AbortController();
+        let timer;
 
-            setAllData(json);
-            setThrusterData(sortByName(json.filter((item) => item.type === "thruster")));
-            setOxygenTankData(sortByName(json.filter((item) => item.type === "gas_valve" && item.name.startsWith("o"))));
-            setHydrogenTankData(sortByName(json.filter((item) => item.type === "gas_valve" && item.name.startsWith("h"))));
+        const laden = async () => {
+            try {
+                const response = await fetch(`${API_URL}/data/current`, {
+                    signal: controller.signal,
+                });
+
+                // Bei 404 (noch keine Sensordaten) oder einem Serverfehler die
+                // bisher angezeigten Werte stehen lassen statt sie zu leeren.
+                if (!response.ok) return;
+
+                const json = await response.json();
+                const sensors = flattenCurrent(json);
+
+                setThrusterData(sortByName(sensors.filter((item) => item.type === "thruster")));
+                setOxygenTankData(sortByName(sensors.filter((item) => item.type === "gas_valve" && item.name.startsWith("o"))));
+                setHydrogenTankData(sortByName(sensors.filter((item) => item.type === "gas_valve" && item.name.startsWith("h"))));
+            } catch (error) {
+                // Backend nicht erreichbar: alte Werte behalten, beim naechsten
+                // Durchlauf wird es wieder versucht.
+                if (error.name !== "AbortError") console.error(error);
+            }
         };
-        fetchData();
+
+        // Erst laden, dann den naechsten Abruf planen – so ueberholen sich
+        // langsame Anfragen nicht gegenseitig.
+        const planen = (verzoegerung) => {
+            timer = setTimeout(async () => {
+                await laden();
+                if (!controller.signal.aborted) planen(POLL_INTERVALL);
+            }, verzoegerung);
+        };
+        planen(0);
+
+        return () => {
+            controller.abort();
+            clearTimeout(timer);
+        };
     }, []);
 
     return (
@@ -168,7 +274,6 @@ function SensorTable() {
             {selectedSensor && (
                 <SensorDetail
                     sensorName={selectedSensor}
-                    readings={allData.filter((item) => item.name === selectedSensor)}
                     onClose={() => setSelectedSensor(null)}
                 />
             )}

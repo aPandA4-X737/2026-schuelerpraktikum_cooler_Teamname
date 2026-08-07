@@ -1,7 +1,37 @@
 import { useCallback, useEffect, useState } from "react";
 
-const API_URL = "http://127.0.0.1:8000/data/";
+const API_URL = "http://127.0.0.1:8000/data_wsi/";
 const POLL_INTERVALL = 10000; // alle 10s neu laden, da laufend Daten reinkommen
+
+/**
+ * /data_wsi/ liefert die komplette Historie verschachtelt:
+ * { typ: { sensorname: [{ time, pressure, temperature }, …] } }
+ *
+ * Tabelle und Suche arbeiten mit einer flachen Liste – deshalb wird hier
+ * jede Messung zu einer eigenen Zeile mit Name und Typ aufgelöst.
+ */
+function flachKlopfen(json) {
+  if (!json || typeof json !== "object") return [];
+
+  const zeilen = [];
+
+  for (const [type, sensoren] of Object.entries(json)) {
+    for (const [name, messungen] of Object.entries(sensoren ?? {})) {
+      for (const messung of messungen ?? []) {
+        zeilen.push({
+          _id: `${type}-${name}-${messung.time}`,
+          type,
+          name,
+          time: messung.time,
+          pressure: messung.pressure,
+          temperature: messung.temperature,
+        });
+      }
+    }
+  }
+
+  return zeilen;
+}
 
 export function useSensorData() {
   const [daten, setDaten] = useState([]);
@@ -14,11 +44,22 @@ export function useSensorData() {
     setLaedtGerade(true);
     try {
       const response = await fetch(API_URL, { signal });
+
+      // 404 heißt hier nur "noch nichts empfangen" – das ist kein Fehler,
+      // die Tabelle zeigt dann ihren Leer-Hinweis.
+      if (response.status === 404) {
+        setDaten([]);
+        setStatus("ok");
+        setFehler(null);
+        setLetzteAktualisierung(Date.now());
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`Server antwortete mit ${response.status}`);
       }
       const json = await response.json();
-      setDaten(Array.isArray(json) ? json : []);
+      setDaten(flachKlopfen(json));
       setStatus("ok");
       setFehler(null);
       setLetzteAktualisierung(Date.now());
