@@ -724,7 +724,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Bereich unten – hier stehen die Sensortabellen */
+/* Bereich unten – hier stehen die Diagramme und Sensortabellen */
 .start-tabellenplatz {
   width: 100%;
   margin-top: 48px;
@@ -1056,6 +1056,195 @@ body {
   background: #fef2f2;
   border-top-color: #fecaca;
   padding: 20px 24px;
+}
+
+/* ============================================================
+   Diagramme (Minutenmittel der Thruster)
+   ============================================================ */
+.diagramme {
+  /* Rollen statt roher Farbwerte – so hängt der Dunkelmodus an einer Stelle */
+  --dia-ink: var(--grau-900);
+  --dia-muted: var(--grau-500);
+  --dia-raster: var(--grau-200);
+  --dia-surface: var(--weiss);
+  --dia-temperatur: #eb6834;
+  --dia-druck: #2563eb;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 0 0 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .diagramme {
+    /* Eigene Stufen für die dunkle Fläche, keine gespiegelten Hellwerte */
+    --dia-ink: #f3f4f6;
+    --dia-muted: #9ca3af;
+    --dia-raster: #2e303a;
+    --dia-surface: #16171d;
+    --dia-temperatur: #d95926;
+    --dia-druck: #3987e5;
+  }
+}
+
+.diagramm {
+  --serie: var(--dia-druck);
+  margin: 0;
+  padding: 16px 18px 10px;
+  background: var(--dia-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.diagramm--temperatur {
+  --serie: var(--dia-temperatur);
+}
+
+.diagramm-kopf {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.diagramm-titel {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--dia-ink);
+}
+
+.diagramm-untertitel {
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--dia-muted);
+}
+
+.diagramm-aktuell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.diagramm-aktuell-wert {
+  display: block;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--dia-ink);
+}
+
+.diagramm-einheit {
+  margin-left: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dia-muted);
+}
+
+.diagramm-aktuell-label {
+  display: block;
+  font-size: 11px;
+  color: var(--dia-muted);
+}
+
+.diagramm-flaeche {
+  position: relative;
+}
+
+.diagramm-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.diagramm-raster {
+  stroke: var(--dia-raster);
+  stroke-width: 1;
+}
+
+.diagramm-tick {
+  fill: var(--dia-muted);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.diagramm-linie {
+  stroke: var(--serie);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.diagramm-wash {
+  fill: var(--serie);
+  opacity: 0.1;
+}
+
+.diagramm-punkt {
+  fill: var(--serie);
+}
+
+/* Ring in Flächenfarbe, damit der Punkt auf der Linie ablesbar bleibt */
+.diagramm-punkt-ring {
+  fill: var(--dia-surface);
+}
+
+.diagramm-fadenkreuz {
+  stroke: var(--dia-muted);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.diagramm-tooltip {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  padding: 6px 9px;
+  background: var(--dia-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--schatten);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.diagramm-tooltip-zeit {
+  display: block;
+  color: var(--dia-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.diagramm-tooltip-wert {
+  display: block;
+  font-weight: 600;
+  color: var(--dia-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.diagramm-tooltip-info {
+  display: block;
+  color: var(--dia-muted);
+}
+
+.diagramm-leer {
+  margin: 0;
+  padding: 48px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--dia-muted);
+}
+
+@media (max-width: 860px) {
+  .diagramme {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ============================================================

@@ -47,7 +47,7 @@ function useHochzaehlen(ziel, animieren) {
   return wert;
 }
 
-export default function Startseite({ onSuchen, anzahl, status }) {
+export default function Startseite({ onSuchen, anzahl, status, daten = [] }) {
   const reduziert = useReduzierteBewegung();
   const angezeigteAnzahl = useHochzaehlen(anzahl, !reduziert);
 
@@ -107,9 +107,10 @@ export default function Startseite({ onSuchen, anzahl, status }) {
           </div>
         </div>
 
-        {/* Übersicht der aktuellen Messwerte – Breite passt zur Datenansicht */}
+        {/* Je Sensorgruppe: Verlaufsdiagramme über der Tabelle mit den
+            aktuellen Messwerten – Breite passt zur Datenansicht */}
         <section className="start-tabellenplatz">
-          <AlteTable />
+          <AlteTable daten={daten} />
         </section>
       </div>
     </div>
