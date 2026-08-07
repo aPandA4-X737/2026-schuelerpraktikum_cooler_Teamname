@@ -1,8 +1,32 @@
 import "./stylesheet.css";
 import { useEffect, useState } from "react";
+import Trenddiagramme from "./Trenddiagramme";
 
 const API_URL = "http://127.0.0.1:8000";
 const POLL_INTERVALL = 10000; // alle 10s neu laden, da laufend Daten reinkommen
+
+/* Die Sensorgruppen an einer Stelle: dieselbe Zuordnung entscheidet, welche
+   Zeilen in einer Tabelle stehen und welche in ihre Diagramme einfliessen.
+   Bei den Gasventilen steckt der Tank nur im Namen (oxygen_… / hydrogen_…). */
+const GRUPPEN = [
+    {
+        id: "thruster",
+        titel: "Thruster",
+        gehoertDazu: (sensor) => sensor.type === "thruster",
+    },
+    {
+        id: "oxygen",
+        titel: "Oxygen Tanks",
+        gehoertDazu: (sensor) =>
+            sensor.type === "gas_valve" && sensor.name.startsWith("o"),
+    },
+    {
+        id: "hydrogen",
+        titel: "Hydrogen Tanks",
+        gehoertDazu: (sensor) =>
+            sensor.type === "gas_valve" && sensor.name.startsWith("h"),
+    },
+];
 
 function formatNumber(value) {
     if (value === null || value === undefined) return "–";
@@ -161,10 +185,12 @@ function SensorDetail({ sensorName, onClose }) {
     );
 }
 
-function SensorSection({ title, sensors, onSelectSensor }) {
+function SensorSection({ title, sensors, onSelectSensor, children }) {
     return (
         <section className="sensor-section">
             <h2>{title}</h2>
+            {/* Diagramme sitzen zwischen Ueberschrift und Tabelle */}
+            {children}
             <div className="table-wrapper">
                 <table>
                     <thead>
@@ -215,12 +241,11 @@ function flattenCurrent(json) {
     );
 }
 
-function SensorTable() {
+function SensorTable({ daten = [] }) {
     const [selectedSensor, setSelectedSensor] = useState(null);
 
-    const [thrusterData, setThrusterData] = useState([]);
-    const [oxygenTankData, setOxygenTankData] = useState([]);
-    const [hydrogenTankData, setHydrogenTankData] = useState([]);
+    // Aktuelle Messwerte je Gruppe: { thruster: [...], oxygen: [...], ... }
+    const [aktuelleWerte, setAktuelleWerte] = useState({});
 
     useEffect(() => {
         const controller = new AbortController();
@@ -239,9 +264,14 @@ function SensorTable() {
                 const json = await response.json();
                 const sensors = flattenCurrent(json);
 
-                setThrusterData(sortByName(sensors.filter((item) => item.type === "thruster")));
-                setOxygenTankData(sortByName(sensors.filter((item) => item.type === "gas_valve" && item.name.startsWith("o"))));
-                setHydrogenTankData(sortByName(sensors.filter((item) => item.type === "gas_valve" && item.name.startsWith("h"))));
+                setAktuelleWerte(
+                    Object.fromEntries(
+                        GRUPPEN.map((gruppe) => [
+                            gruppe.id,
+                            sortByName(sensors.filter(gruppe.gehoertDazu)),
+                        ])
+                    )
+                );
             } catch (error) {
                 // Backend nicht erreichbar: alte Werte behalten, beim naechsten
                 // Durchlauf wird es wieder versucht.
@@ -267,9 +297,20 @@ function SensorTable() {
 
     return (
         <>
-            <SensorSection title="Thruster" sensors={thrusterData} onSelectSensor={setSelectedSensor} />
-            <SensorSection title="Oxygen Tanks" sensors={oxygenTankData} onSelectSensor={setSelectedSensor} />
-            <SensorSection title="Hydrogen Tanks" sensors={hydrogenTankData} onSelectSensor={setSelectedSensor} />
+            {GRUPPEN.map((gruppe) => (
+                <SensorSection
+                    key={gruppe.id}
+                    title={gruppe.titel}
+                    sensors={aktuelleWerte[gruppe.id] ?? []}
+                    onSelectSensor={setSelectedSensor}
+                >
+                    <Trenddiagramme
+                        daten={daten}
+                        gruppe={gruppe.titel}
+                        gehoertDazu={gruppe.gehoertDazu}
+                    />
+                </SensorSection>
+            ))}
 
             {selectedSensor && (
                 <SensorDetail

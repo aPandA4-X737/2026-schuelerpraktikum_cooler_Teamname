@@ -73,6 +73,7 @@ function App() {
         onSuchen={() => setAnsicht("daten")}
         anzahl={daten.length}
         status={status}
+        daten={daten}
       />
     );
   }
