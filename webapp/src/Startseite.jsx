@@ -105,21 +105,6 @@ export default function Startseite({ onSuchen, anzahl, status }) {
               <kbd className="suche-kbd">⌘K</kbd>
             </button>
           </div>
-
-          <p className="start-meta">
-            <span className={`status-punkt status-punkt--${status}`}>
-              {status === "ok" ? "Verbunden" : status === "laedt" ? "Lädt" : "Offline"}
-            </span>
-            {status === "ok" && (
-              <>
-                <span className="start-meta-trenner">·</span>
-                <span>
-                  <strong className="start-zahl">{angezeigteAnzahl}</strong> Datensätze
-                  verfügbar
-                </span>
-              </>
-            )}
-          </p>
         </div>
 
         {/* Übersicht der aktuellen Messwerte – Breite passt zur Datenansicht */}
